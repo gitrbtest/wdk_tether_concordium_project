@@ -1,0 +1,30 @@
+# --- Dependencies & build noise ---
+node_modules/
+*.log
+.DS_Store
+
+# --- Local run artifacts produced by the spikes / examples (never commit) ---
+callback.txt
+onboard-state.json
+identity-object.json
+identity-request.json
+
+# --- Internal planning / findings docs — DO NOT ship these to the shared repo.
+#     (They live at the workspace root; keep them out of the code repository.) ---
+/Concordium-WDK-Analysis-and-Plan.pdf
+/Concordium-WDK-Revised-Scope-and-Plan-v2.pdf
+/Concordium-Questions-for-Stakeholders.pdf
+/Concordium-WDK-Scope-of-Work.md
+/Concordium-WDK-Scope-of-Work.pdf
+/Concordium-WDK-Explained.md
+/Scope-Update-27Jul.md
+/Phase0-Findings.md
+/Onboarding-Findings.md
+/PLT-Sponsored-Findings.md
+/Production-IdP-Notes.md
+/NOTES-to-revisit.md
+/COMMIT-PLAN.md
+/pdf-build/
+
+# Optional: uncomment to keep lockfiles out of history
+# package-lock.json
