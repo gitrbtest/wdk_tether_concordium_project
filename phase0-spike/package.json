@@ -1,0 +1,17 @@
+{
+  "name": "concordium-wdk-spike",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Phase 0 de-risking spike for adding Concordium support to Tether WDK. Proves seed->key derivation, testnet connectivity, balance reads, and the account-existence model.",
+  "scripts": {
+    "spike": "node spike.mjs",
+    "spike:plt": "node spike-plt.mjs",
+    "onboard:request": "node spike-onboard.mjs request",
+    "onboard:create": "node spike-onboard.mjs create"
+  },
+  "dependencies": {
+    "@concordium/web-sdk": "^12.0.2",
+    "@grpc/grpc-js": "^1.14.0"
+  }
+}
