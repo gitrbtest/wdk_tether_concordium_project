@@ -1,0 +1,34 @@
+{
+  "name": "@tetherto/wdk-wallet-concordium",
+  "version": "0.0.1",
+  "description": "WDK wallet module for the Concordium blockchain. Phase 1: read-only (derive accounts, addresses, balances). Sending, tokens and onboarding land in later phases.",
+  "type": "module",
+  "main": "index.js",
+  "types": "types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./types/index.d.ts",
+      "default": "./index.js"
+    }
+  },
+  "files": ["index.js", "src", "types", "README.md"],
+  "scripts": {
+    "example": "node example.mjs",
+    "example:send": "node example-send.mjs",
+    "example:verify": "node example-verify.mjs",
+    "onboard:request": "node example-onboard.mjs request",
+    "onboard:create": "node example-onboard.mjs create",
+    "example:token": "node example-token.mjs",
+    "example:sponsored": "node example-sponsored.mjs"
+  },
+  "keywords": ["wdk", "wallet", "concordium", "ccd", "multi-chain", "tether"],
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@tetherto/wdk-wallet": "^1.0.0-beta.15",
+    "@concordium/web-sdk": "^12.0.2",
+    "@grpc/grpc-js": "^1.14.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
