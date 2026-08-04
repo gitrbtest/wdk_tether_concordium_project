@@ -20,10 +20,48 @@ export interface ConcordiumEndpoint {
 export interface WalletManagerConcordiumConfig extends WalletConfig {
   network?: 'Testnet' | 'Mainnet';
   endpoint?: ConcordiumEndpoint;
+  /** Wallet-proxy base URL (used for onboarding + account recovery). */
+  walletProxy?: string;
   /** Concordium identity-provider index WDK indices live under. Default 0. */
   identityProviderIndex?: number;
   /** Concordium identity index WDK indices live under. Default 0. */
   identityIndex?: number;
+}
+
+/** One account returned by the wallet-proxy /v0/keyAccounts lookup. */
+export interface KeyAccount {
+  address: string;
+  credentialIndex: number;
+  keyIndex: number;
+  isSimpleAccount: boolean;
+  publicKey: { schemeId: string; verifyKey: string };
+}
+
+/** Options for {@link WalletManagerConcordium.findAccountByPublicKey}. */
+export interface FindAccountByPublicKeyOptions {
+  /** Only return simple (single-credential, single-key) accounts. Default false. */
+  onlySimple?: boolean;
+}
+
+/** Options for {@link WalletManagerConcordium.recoverAccounts}. */
+export interface RecoverAccountsOptions {
+  providerIndex?: number;
+  identityIndex?: number;
+  /** First credential counter to try. Default 0. */
+  startIndex?: number;
+  /** Stop after this many consecutive empty indexes. Default 3. */
+  gapLimit?: number;
+  /** Hard cap on how far to scan. Default 50. */
+  maxIndex?: number;
+  onlySimple?: boolean;
+}
+
+/** A recovered account: its derived index/path and the on-chain address. */
+export interface RecoveredAccount {
+  index: number;
+  path: string;
+  address: string;
+  publicKey: string;
 }
 
 /** A native CCD transfer request. */
@@ -150,6 +188,22 @@ export default class WalletManagerConcordium extends WalletManager {
   getOnboarding(): ConcordiumOnboarding;
   /** List Protocol-Level Token ids available on this network. */
   listTokens(limit?: number): Promise<string[]>;
+
+  // ---- account recovery (Phase 6) ----
+  /**
+   * Look up the on-chain accounts controlled by a signing-key public key, via
+   * the wallet-proxy /v0/keyAccounts endpoint. Empty array = no such account.
+   */
+  findAccountByPublicKey(
+    publicKey: string | Uint8Array,
+    options?: FindAccountByPublicKeyOptions,
+  ): Promise<KeyAccount[]>;
+  /**
+   * Recover accounts from the seed by scanning credential counters and looking
+   * up each derived public key. Stops after `gapLimit` consecutive empty indexes.
+   */
+  recoverAccounts(options?: RecoverAccountsOptions): Promise<RecoveredAccount[]>;
+
   dispose(): void;
 }
 

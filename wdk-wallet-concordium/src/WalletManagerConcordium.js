@@ -71,6 +71,11 @@ export default class WalletManagerConcordium extends WalletManager {
     return this._global;
   }
 
+  /** HTTP fetch used for wallet-proxy calls. Overridable so tests can inject a fake. */
+  async _fetch(url, options) {
+    return fetch(url, options);
+  }
+
   /**
    * Get the account at a WDK index (mapped to a credential counter).
    * @param {number} [index=0]
@@ -133,6 +138,99 @@ export default class WalletManagerConcordium extends WalletManager {
       }
     }
     return ids;
+  }
+
+  // ================= Phase 6: seed-based account recovery =================
+  //
+  // On Concordium a derived key does NOT reveal its on-chain account (one
+  // identity can back many accounts, and the key->account mapping lives on the
+  // chain, not in the key). To recover a wallet from just the seed we derive
+  // each account's public key locally and ask Concordium's wallet-proxy which
+  // account(s) that key controls, via the documented endpoint:
+  //   GET /v0/keyAccounts/{publicKeyHex}[?onlySimple=y]
+  // See: https://github.com/Concordium/concordium-wallet-proxy (README).
+
+  /**
+   * Look up the on-chain accounts controlled by a signing-key public key.
+   * This is the primitive behind recovery ("find the account BY the public key").
+   *
+   * @param {string | Uint8Array} publicKey  Ed25519 verify key (32-byte hex or bytes).
+   * @param {object} [opts]
+   * @param {boolean} [opts.onlySimple=false]  Only simple (single-credential, single-key) accounts.
+   * @returns {Promise<Array<{
+   *   address: string, credentialIndex: number, keyIndex: number,
+   *   isSimpleAccount: boolean, publicKey: { schemeId: string, verifyKey: string }
+   * }>>}  Empty array when the key controls no account.
+   */
+  async findAccountByPublicKey(publicKey, { onlySimple = false } = {}) {
+    const hex = (typeof publicKey === 'string'
+      ? publicKey.trim().replace(/^0x/i, '')
+      : Buffer.from(publicKey).toString('hex')).toLowerCase();
+    if (!/^[0-9a-f]{64}$/.test(hex)) {
+      throw new Error(
+        `findAccountByPublicKey: expected a 32-byte hex Ed25519 public key, got "${hex}".`
+      );
+    }
+    const url = `${this._ccd.walletProxy}/v0/keyAccounts/${hex}${onlySimple ? '?onlySimple=y' : ''}`;
+    const res = await this._fetch(url);
+    if (res.status === 404) return [];                 // no accounts for this key
+    if (!res.ok) {
+      throw new Error(`wallet-proxy keyAccounts returned HTTP ${res.status} for ${hex}`);
+    }
+    const body = await res.json();
+    const rows = Array.isArray(body) ? body : (body?.accounts ?? []);
+    return rows.map((r) => ({
+      address: r.address,
+      credentialIndex: r.credential_index,
+      keyIndex: r.key_index,
+      isSimpleAccount: r.is_simple_account,
+      publicKey: r.public_key,
+    }));
+  }
+
+  /**
+   * Recover accounts from the seed: scan credential counters under a fixed
+   * (provider, identity), derive each public key, and ask the wallet-proxy which
+   * accounts it controls. Stops after `gapLimit` consecutive empty indexes.
+   *
+   * @param {object} [opts]
+   * @param {number}  [opts.providerIndex=cfg.identityProviderIndex]
+   * @param {number}  [opts.identityIndex=cfg.identityIndex]
+   * @param {number}  [opts.startIndex=0]   First credential counter to try.
+   * @param {number}  [opts.gapLimit=3]     Stop after this many consecutive empty indexes.
+   * @param {number}  [opts.maxIndex=50]    Hard cap on how far to scan.
+   * @param {boolean} [opts.onlySimple=false]
+   * @returns {Promise<Array<{ index: number, path: string, address: string, publicKey: string }>>}
+   */
+  async recoverAccounts({
+    providerIndex = this._ccd.identityProviderIndex,
+    identityIndex = this._ccd.identityIndex,
+    startIndex = 0,
+    gapLimit = 3,
+    maxIndex = 50,
+    onlySimple = false,
+  } = {}) {
+    const sdk = await this._getSdk();
+    const wallet = sdk.ConcordiumHdWallet.fromHex(this._seedHex, this._ccd.network);
+    const found = [];
+    let gap = 0;
+    for (let i = startIndex; i <= maxIndex && gap < gapLimit; i++) {
+      const pub = Buffer.from(
+        wallet.getAccountPublicKey(providerIndex, identityIndex, i)
+      ).toString('hex');
+      const accounts = await this.findAccountByPublicKey(pub, { onlySimple });
+      if (accounts.length === 0) { gap++; continue; }
+      gap = 0;
+      for (const a of accounts) {
+        found.push({
+          index: i,
+          path: `${providerIndex}/${identityIndex}/${i}`,
+          address: a.address,
+          publicKey: pub,
+        });
+      }
+    }
+    return found;
   }
 
   dispose() {
