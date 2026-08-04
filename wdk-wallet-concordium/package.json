@@ -1,7 +1,7 @@
 {
   "name": "@tetherto/wdk-wallet-concordium",
-  "version": "0.0.1",
-  "description": "WDK wallet module for the Concordium blockchain. Phase 1: read-only (derive accounts, addresses, balances). Sending, tokens and onboarding land in later phases.",
+  "version": "1.0.0-beta.1",
+  "description": "WDK wallet module for the Concordium blockchain: account derivation, native CCD, PLT + CIS-2 tokens, sponsored transactions, dev/testnet onboarding, and seed-based account recovery.",
   "type": "module",
   "main": "index.js",
   "types": "types/index.d.ts",
@@ -11,7 +11,7 @@
       "default": "./index.js"
     }
   },
-  "files": ["index.js", "src", "types", "README.md"],
+  "files": ["index.js", "src", "types", "README.md", "LICENSE"],
   "scripts": {
     "example": "node example.mjs",
     "example:send": "node example-send.mjs",
@@ -25,13 +25,18 @@
     "test:all": "node --test \"test/unit/*.test.mjs\" \"test/integration/*.test.mjs\""
   },
   "keywords": ["wdk", "wallet", "concordium", "ccd", "multi-chain", "tether"],
+  "author": "Concordium",
   "license": "Apache-2.0",
   "dependencies": {
-    "@tetherto/wdk-wallet": "^1.0.0-beta.15",
-    "@concordium/web-sdk": "^12.0.2",
-    "@grpc/grpc-js": "^1.14.0"
+    "@tetherto/wdk-wallet": "1.0.0-beta.15",
+    "@concordium/web-sdk": "12.0.2",
+    "@grpc/grpc-js": "1.14.0"
   },
   "engines": {
     "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   }
 }
