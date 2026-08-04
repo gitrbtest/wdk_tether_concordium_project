@@ -19,7 +19,10 @@
     "onboard:request": "node example-onboard.mjs request",
     "onboard:create": "node example-onboard.mjs create",
     "example:token": "node example-token.mjs",
-    "example:sponsored": "node example-sponsored.mjs"
+    "example:sponsored": "node example-sponsored.mjs",
+    "test": "node --test \"test/unit/*.test.mjs\"",
+    "test:integration": "node --test \"test/integration/*.test.mjs\"",
+    "test:all": "node --test \"test/unit/*.test.mjs\" \"test/integration/*.test.mjs\""
   },
   "keywords": ["wdk", "wallet", "concordium", "ccd", "multi-chain", "tether"],
   "license": "Apache-2.0",

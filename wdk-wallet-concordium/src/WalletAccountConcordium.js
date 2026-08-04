@@ -363,12 +363,27 @@ export default class WalletAccountConcordium extends WalletAccountReadOnly {
     const contract = await this._cis2Contract(ref);
     const from = s.AccountAddress.fromBase58(await this.getAddress());
     const to = s.AccountAddress.fromBase58(recipient);
-    const dry = await contract.dryRun.transfer(from, { tokenId: ref.tokenId, tokenAmount: amount, from, to });
+    const transfer = { tokenId: ref.tokenId, tokenAmount: amount, from, to };
+
+    // The dry-run reports only the contract EXECUTION energy — not the base
+    // transaction cost (header + signature + payload size) that is also charged.
+    const dry = await contract.dryRun.transfer(from, transfer);
     if (dry?.tag && dry.tag !== 'success') {
       throw new Error('CIS-2 quote dry-run failed: ' + (dry?.reason?.tag ?? 'see node'));
     }
     const cp = await client.getBlockChainParameters();
-    const feeAmount = s.convertEnergyToMicroCcd(dry.usedEnergy, cp?.value ?? cp);
+
+    // Build the same Update transaction (declared energy = the used energy) and
+    // price it with getEnergyCost, which adds the base cost. This makes the quote
+    // equal what the node actually charges (base + execution), matching the PLT
+    // path. Fall back to execution-only if this SDK build lacks the helpers.
+    let energy = dry.usedEnergy;
+    try {
+      const tx = contract.createTransfer({ energy: dry.usedEnergy }, transfer);
+      energy = s.getEnergyCost(s.AccountTransactionType.Update, tx.payload, 1n);
+    } catch { /* older SDK: keep execution-only estimate */ }
+
+    const feeAmount = s.convertEnergyToMicroCcd(energy, cp?.value ?? cp);
     return { fee: BigInt(feeAmount?.microCcdAmount ?? feeAmount?.value ?? feeAmount) };
   }
 
@@ -400,13 +415,13 @@ export default class WalletAccountConcordium extends WalletAccountReadOnly {
    * @returns {Promise<object>} a Transaction.JSON signable object
    */
   async buildSponsorableTransfer({ token, recipient, amount, sponsorAddress }) {
-    const s = this._sdk;
-    const plt = await this._plt();
-    const client = await this._getClient();
     const ref = parseTokenRef(token);
     if (ref.kind !== 'plt') {
       throw new NotImplementedError('Sponsored transfers currently target PLT tokens (the stablecoin case).');
     }
+    const s = this._sdk;
+    const plt = await this._plt();
+    const client = await this._getClient();
     const tok = await plt.Token.fromId(client, plt.TokenId.fromString(ref.symbol));
     const decimals = tokenDecimals(tok);
     if (decimals == null) throw new Error('buildSponsorableTransfer: could not determine PLT decimals.');
@@ -467,7 +482,7 @@ export default class WalletAccountConcordium extends WalletAccountReadOnly {
 }
 
 /** Classify a token identifier string as PLT or CIS-2 (see convention above). */
-function parseTokenRef(ref) {
+export function parseTokenRef(ref) {
   const str = String(ref).trim();
   if (str.toLowerCase().startsWith('cis2:')) {
     const parts = str.split(':');            // ["cis2", index, subindex, ...idParts]
