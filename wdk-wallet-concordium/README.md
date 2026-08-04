@@ -146,6 +146,7 @@ crypto is confirmed working under Node in Phase 0.
 | `endpoint.host` | `grpc.testnet.concordium.com` | Concordium gRPC node host |
 | `endpoint.port` | `20000` | node port |
 | `endpoint.secure` | `true` | TLS — the public testnet node requires it |
+| `walletProxy` | `https://wallet-proxy.testnet.concordium.com` | wallet-proxy base URL (onboarding + recovery) |
 | `identityProviderIndex` | `0` | provider that WDK indices live under |
 | `identityIndex` | `0` | identity that WDK indices live under |
 
@@ -166,6 +167,7 @@ verified on testnet.
 | `getTransactionReceipt` | ✅ |
 | `getTokenBalance` / `transfer` / `quoteTransfer` (PLT **and** CIS-2) | ✅ |
 | `getFeeRates` | throws — Concordium prices by energy; use the quote methods |
+| `manager.findAccountByPublicKey(key)` / `manager.recoverAccounts()` | ✅ seed-based recovery (see below) |
 | _Extras:_ `getCis2Metadata`, `getBalanceForAddress`, `manager.getOnboarding()`, `manager.listTokens()`, sponsored methods | ✅ Concordium-specific |
 
 ## Status
