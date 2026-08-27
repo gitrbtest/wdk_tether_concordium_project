@@ -1,8 +1,11 @@
-# @tetherto/wdk-wallet-concordium
+# @concordium/wdk-wallet-concordium
 
 A WDK wallet module that teaches the [Tether Wallet Development Kit](https://github.com/tetherto/wdk)
 to speak **Concordium**. It plugs in alongside the EVM / Solana / TON / TRON
 modules and is driven through the same WDK interface.
+
+> This is a **community WDK module**, published under the `@concordium` npm scope
+> and maintained by Concordium. It is not published or maintained by Tether.
 
 > **Status: feature-complete on testnet (Phases 1–6), with an automated test
 > suite.** Account derivation, native CCD, dev/testnet onboarding, generic
@@ -13,14 +16,14 @@ modules and is driven through the same WDK interface.
 ## Install
 
 ```bash
-npm install @tetherto/wdk-wallet-concordium
+npm install @concordium/wdk-wallet-concordium
 ```
 
 ## Use with WDK
 
 ```js
 import WDK from '@tetherto/wdk'
-import WalletManagerConcordium from '@tetherto/wdk-wallet-concordium'
+import WalletManagerConcordium from '@concordium/wdk-wallet-concordium'
 
 const wdk = new WDK(seedPhrase)
   .registerWallet('concordium', WalletManagerConcordium, {

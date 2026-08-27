@@ -1,11 +1,11 @@
 /**
- * @tetherto/wdk-wallet-concordium
+ * @concordium/wdk-wallet-concordium
  * -------------------------------------------------------------------
  * Entry point. Mirrors the shape of the other WDK wallet modules:
  * the default export is the WalletManager class that WDK registers.
  *
  *   import WDK from '@tetherto/wdk'
- *   import WalletManagerConcordium from '@tetherto/wdk-wallet-concordium'
+ *   import WalletManagerConcordium from '@concordium/wdk-wallet-concordium'
  *
  *   const wdk = new WDK(seedPhrase)
  *     .registerWallet('concordium', WalletManagerConcordium, {

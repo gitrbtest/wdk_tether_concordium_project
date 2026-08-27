@@ -1,0 +1,64 @@
+name: Publish @concordium/wdk-wallet-concordium
+
+# Releases are cut by pushing a tag, e.g.:
+#   git tag v1.0.0-beta.1 && git push origin v1.0.0-beta.1
+# The tag must match the "version" in wdk-wallet-concordium/package.json.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # required for npm Trusted Publishing + provenance
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: wdk-wallet-concordium
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      # Trusted Publishing needs a recent npm CLI.
+      - name: Use latest npm
+        run: npm install -g npm@latest
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Check tag matches package version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          PKG_VERSION="$(node -p "require('./package.json').version")"
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
+            echo "Tag $TAG_VERSION does not match package.json version $PKG_VERSION" >&2
+            exit 1
+          fi
+
+      - name: Show what will be published
+        run: npm pack --dry-run
+
+      # Preferred: npm Trusted Publishing (OIDC). Configure it once on npmjs.com
+      # under the package's Settings, pointing at this repo + this workflow file.
+      # No NPM_TOKEN secret to create, rotate, or leak; provenance is attached
+      # automatically.
+      - name: Publish
+        run: npm publish --access public
+      # Fallback if Trusted Publishing is not set up — replace the step above with:
+      #   - name: Publish
+      #     run: npm publish --access public --provenance
+      #     env:
+      #       NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

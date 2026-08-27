@@ -1,5 +1,5 @@
 {
-  "name": "@tetherto/wdk-wallet-concordium",
+  "name": "@concordium/wdk-wallet-concordium",
   "version": "1.0.0-beta.1",
   "description": "WDK wallet module for the Concordium blockchain: account derivation, native CCD, PLT + CIS-2 tokens, sponsored transactions, dev/testnet onboarding, and seed-based account recovery.",
   "type": "module",
@@ -11,7 +11,13 @@
       "default": "./index.js"
     }
   },
-  "files": ["index.js", "src", "types", "README.md", "LICENSE"],
+  "files": [
+    "index.js",
+    "src",
+    "types",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "example": "node example.mjs",
     "example:send": "node example-send.mjs",
@@ -24,13 +30,29 @@
     "test:integration": "node --test \"test/integration/*.test.mjs\"",
     "test:all": "node --test \"test/unit/*.test.mjs\" \"test/integration/*.test.mjs\""
   },
-  "keywords": ["wdk", "wallet", "concordium", "ccd", "multi-chain", "tether"],
+  "keywords": [
+    "wdk",
+    "wallet",
+    "concordium",
+    "ccd",
+    "multi-chain",
+    "tether"
+  ],
   "author": "Concordium",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gitrbtest/wdk_tether_concordium_project.git",
+    "directory": "wdk-wallet-concordium"
+  },
+  "homepage": "https://github.com/gitrbtest/wdk_tether_concordium_project/tree/main/wdk-wallet-concordium#readme",
+  "bugs": {
+    "url": "https://github.com/gitrbtest/wdk_tether_concordium_project/issues"
+  },
   "dependencies": {
-    "@tetherto/wdk-wallet": "1.0.0-beta.15",
     "@concordium/web-sdk": "12.0.2",
-    "@grpc/grpc-js": "1.14.0"
+    "@grpc/grpc-js": "1.14.0",
+    "@tetherto/wdk-wallet": "^1.0.0-beta.15"
   },
   "engines": {
     "node": ">=18"

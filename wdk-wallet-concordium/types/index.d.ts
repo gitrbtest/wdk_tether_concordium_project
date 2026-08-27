@@ -1,4 +1,4 @@
-// Type definitions for @tetherto/wdk-wallet-concordium
+// Type definitions for @concordium/wdk-wallet-concordium
 //
 // Built on the Tether base package: the manager extends WalletManager and the
 // account extends WalletAccountReadOnly / implements IWalletAccount, plus
