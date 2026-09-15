@@ -165,9 +165,7 @@ export default class ConcordiumOnboarding {
 
     const address = sdk.getAccountAddress(credentialDeployment.unsignedCdi.credId).toString();
     const payload = sdk.serializeCredentialDeploymentPayload(signatures, credentialDeployment);
-    const sendFn = (client.sendCredentialDeploymentTransaction
-      || client.sendCredentialDeployment || client.sendCredentialDeploymentPayload).bind(client);
-    await sendFn(payload, expiry);
+    await client.sendCredentialDeploymentTransaction(payload, expiry);
 
     return { address, providerIndex, identityIndex, credNumber };
   }
