@@ -116,6 +116,17 @@ export class AccountNotCreatedError extends Error {
   address?: string;
 }
 
+/**
+ * Thrown when a transaction finalizes but its on-chain outcome is a rejection.
+ * The transaction still has a hash and cost the fee; it just didn't take effect.
+ */
+export class TransactionRejectedError extends Error {
+  /** The finalized transaction hash. */
+  hash: string;
+  /** The SDK reject reason (a tagged object with a `tag`), or null if unavailable. */
+  rejectReason: unknown | null;
+}
+
 export class WalletAccountConcordium extends WalletAccountReadOnly implements IWalletAccount {
   get index(): number;
   get path(): string;

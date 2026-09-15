@@ -18,8 +18,8 @@
  */
 
 import WalletManagerConcordium from './src/WalletManagerConcordium.js';
-import WalletAccountConcordium, { AccountNotCreatedError } from './src/WalletAccountConcordium.js';
+import WalletAccountConcordium, { AccountNotCreatedError, TransactionRejectedError } from './src/WalletAccountConcordium.js';
 import ConcordiumOnboarding from './src/ConcordiumOnboarding.js';
 
 export default WalletManagerConcordium;
-export { WalletManagerConcordium, WalletAccountConcordium, ConcordiumOnboarding, AccountNotCreatedError };
+export { WalletManagerConcordium, WalletAccountConcordium, ConcordiumOnboarding, AccountNotCreatedError, TransactionRejectedError };

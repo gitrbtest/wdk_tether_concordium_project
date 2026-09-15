@@ -33,6 +33,25 @@ export class AccountNotCreatedError extends Error {
   }
 }
 
+/**
+ * Thrown when a transaction is submitted and FINALIZES, but its on-chain outcome
+ * is a rejection (e.g. insufficient balance). The transaction still has a hash
+ * and cost the fee — it just didn't do what was asked. Carries the hash and the
+ * SDK reject reason so callers can inspect why rather than parse a string.
+ */
+export class TransactionRejectedError extends Error {
+  /**
+   * @param {string} hash    The finalized transaction hash.
+   * @param {object} [reason] The SDK RejectReason (a tagged object with a `tag`).
+   */
+  constructor(hash, reason) {
+    super(`Transaction ${hash} finalized but was rejected (${reason?.tag ?? 'unknown reason'}).`);
+    this.name = 'TransactionRejectedError';
+    this.hash = hash;
+    this.rejectReason = reason ?? null;
+  }
+}
+
 export default class WalletAccountConcordium extends WalletAccountReadOnly {
   constructor({ sdk, wallet, getClient, getGlobal, network,
                 providerIndex, identityIndex, credNumber, address }) {
@@ -140,10 +159,35 @@ export default class WalletAccountConcordium extends WalletAccountReadOnly {
   }
 
   /**
+   * Wait for a submitted transaction to finalize, then turn a rejected on-chain
+   * outcome into a thrown error. Shared by every submission method so they all
+   * report success and failure the same way.
+   * @param {import('@concordium/web-sdk').TransactionHash.Type} hash
+   * @returns {Promise<{hash: string, fee: bigint}>} On success (finalized, not rejected).
+   * @throws {TransactionRejectedError} If the transaction finalizes in a rejected state.
+   * @throws {Error} If the finalized outcome cannot be read.
+   */
+  async _awaitFinalized(hash) {
+    const s = this._sdk;
+    const client = await this._getClient();
+    const { summary } = await client.waitForTransactionFinalization(hash);
+    if (!summary) {
+      throw new Error(`Could not read the finalized outcome of transaction ${hash.toString()}.`);
+    }
+    if (s.isRejectTransaction(summary)) {
+      throw new TransactionRejectedError(hash.toString(), s.getTransactionRejectReason(summary));
+    }
+    return { hash: hash.toString(), fee: extractFee({ summary }) };
+  }
+
+  /**
    * Send native CCD. Accepts either a { to, value } transaction (built + signed
-   * here) or an already-signed transaction. Waits for finalization to report
-   * the real fee.
-   * @returns {Promise<{hash: string, fee: bigint}>}
+   * here) or an already-signed transaction. Waits for finalization and reports a
+   * rejected on-chain outcome as an error rather than a normal result.
+   * @returns {Promise<{hash: string, fee: bigint}>} On success (finalized, not rejected).
+   * @throws {AccountNotCreatedError} If this account does not exist on-chain yet.
+   * @throws {TransactionRejectedError} If the transaction finalizes in a rejected state.
+   * @throws {Error} If the node rejects the submission (e.g. verification/nonce failure).
    */
   async sendTransaction(tx) {
     const client = await this._getClient();
@@ -151,8 +195,7 @@ export default class WalletAccountConcordium extends WalletAccountReadOnly {
     const signed = isRequest ? await this.signTransaction(tx) : tx;
 
     const hash = await client.sendTransaction(signed);
-    const status = await client.waitForTransactionFinalization(hash);
-    return { hash: hash.toString(), fee: extractFee(status) };
+    return this._awaitFinalized(hash);
   }
 
   /**
@@ -214,7 +257,12 @@ export default class WalletAccountConcordium extends WalletAccountReadOnly {
     return ref.kind === 'cis2' ? this._cis2Balance(ref) : this._pltBalance(ref);
   }
 
-  /** Transfer a PLT or CIS-2 token. amount is in base units. */
+  /**
+   * Transfer a PLT or CIS-2 token. amount is in base units.
+   * @returns {Promise<{hash: string, fee: bigint}>} On success (finalized, not rejected).
+   * @throws {TransactionRejectedError} If the transfer finalizes in a rejected state.
+   * @throws {Error} If token decimals/energy can't be determined, or the node rejects the submission.
+   */
   async transfer({ token, recipient, amount }) {
     const ref = parseTokenRef(token);
     return ref.kind === 'cis2'
@@ -280,8 +328,7 @@ export default class WalletAccountConcordium extends WalletAccountReadOnly {
       tok, sender, { recipient: recip, amount: amt }, this._signer(),
       undefined, { autoScale: false, validate: true }
     );
-    const status = await client.waitForTransactionFinalization(hash);
-    return { hash: hash.toString(), fee: extractFee(status) };
+    return this._awaitFinalized(hash);
   }
 
   async _pltQuoteTransfer(ref, recipient, amount) {
@@ -334,15 +381,13 @@ export default class WalletAccountConcordium extends WalletAccountReadOnly {
 
   async _cis2Transfer(ref, recipient, amount) {
     const s = this._sdk;
-    const client = await this._getClient();
     const contract = await this._cis2Contract(ref);
     const from = s.AccountAddress.fromBase58(await this.getAddress());
     const to = s.AccountAddress.fromBase58(recipient);
     const transfer = { tokenId: ref.tokenId, tokenAmount: amount, from, to };
     const energy = await this._cis2Energy(contract, from, transfer);
     const hash = await contract.transfer({ senderAddress: from, energy }, transfer, this._signer());
-    const status = await client.waitForTransactionFinalization(hash);
-    return { hash: hash.toString(), fee: extractFee(status) };
+    return this._awaitFinalized(hash);
   }
 
   /** Dry-run a CIS-2 transfer to size the max execution energy (+20% headroom). */
@@ -457,14 +502,18 @@ export default class WalletAccountConcordium extends WalletAccountReadOnly {
     return this._addSponsorSignature(accountSignedJson);
   }
 
-  /** Broadcast a fully-signed sponsored transaction (both signatures present). */
+  /**
+   * Broadcast a fully-signed sponsored transaction (both signatures present).
+   * @returns {Promise<{hash: string, fee: bigint}>} On success (finalized, not rejected).
+   * @throws {TransactionRejectedError} If the transaction finalizes in a rejected state.
+   * @throws {Error} If the node rejects the submission.
+   */
   async submitSponsored(fullySignedJson) {
     const s = this._sdk;
     const client = await this._getClient();
     const finalized = s.Transaction.finalize(s.Transaction.signableFromJSON(fullySignedJson));
     const hash = await client.sendTransaction(finalized);
-    const status = await client.waitForTransactionFinalization(hash);
-    return { hash: hash.toString(), fee: extractFee(status) };
+    return this._awaitFinalized(hash);
   }
 
   // -- internal: add one signature (account or sponsor) to a signable JSON --
