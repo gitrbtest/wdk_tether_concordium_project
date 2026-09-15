@@ -126,8 +126,11 @@ export default class ConcordiumOnboarding {
 
   /**
    * Step 3: create the on-chain account by deploying a credential from the
-   * issued identity object.
+   * issued identity object. Submits the deployment, waits for it to finalize,
+   * and confirms an account was actually created before returning.
    * @returns {Promise<{address: string, providerIndex: number, identityIndex: number, credNumber: number}>}
+   * @throws {Error} If submission is rejected by the node, or the deployment does
+   *   not finalize as an account creation (i.e. the account was not created).
    */
   async createAccount({
     identityObject,
@@ -165,7 +168,20 @@ export default class ConcordiumOnboarding {
 
     const address = sdk.getAccountAddress(credentialDeployment.unsignedCdi.credId).toString();
     const payload = sdk.serializeCredentialDeploymentPayload(signatures, credentialDeployment);
-    await client.sendCredentialDeploymentTransaction(payload, expiry);
+
+    // Submit, then WAIT for finalization and confirm the account was actually
+    // created. On success a credential deployment finalizes as an AccountCreation
+    // summary; anything else means the deployment did not create an account, and
+    // the caller must know rather than receive an address that doesn't exist.
+    // (A submission the node rejects outright throws here as well.)
+    const hash = await client.sendCredentialDeploymentTransaction(payload, expiry);
+    const { summary } = await client.waitForTransactionFinalization(hash);
+    if (summary?.type !== sdk.TransactionSummaryType.AccountCreation) {
+      throw new Error(
+        `Credential deployment ${hash.toString()} did not create account ${address} ` +
+        `(finalized as "${summary?.type ?? 'unknown'}").`
+      );
+    }
 
     return { address, providerIndex, identityIndex, credNumber };
   }
