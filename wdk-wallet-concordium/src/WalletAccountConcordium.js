@@ -220,7 +220,6 @@ export default class WalletAccountConcordium extends WalletAccountReadOnly {
   /** Sign an arbitrary message (Ed25519). */
   async sign(message) {
     const s = this._sdk;
-    if (!s.signMessage) throw new NotImplementedError('sign: message signing helper not found in this SDK version.');
     const sender = s.AccountAddress.fromBase58(await this.getAddress());
     const sig = await s.signMessage(sender, message, this._signer());
     return JSON.stringify(sig);
@@ -229,7 +228,6 @@ export default class WalletAccountConcordium extends WalletAccountReadOnly {
   /** Verify a message signature produced by sign(). */
   async verify(message, signature) {
     const s = this._sdk;
-    if (!s.verifyMessageSignature) throw new NotImplementedError('verify: helper not found in this SDK version.');
     const sender = s.AccountAddress.fromBase58(await this.getAddress());
     const info = await (await this._getClient()).getAccountInfo(sender);
     return s.verifyMessageSignature(message, JSON.parse(signature), info);
