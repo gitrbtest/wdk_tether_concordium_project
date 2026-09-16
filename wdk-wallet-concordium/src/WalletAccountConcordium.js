@@ -137,7 +137,7 @@ export default class WalletAccountConcordium extends WalletAccountReadOnly {
       this._wallet.getAccountSigningKey(this._providerIndex, this._identityIndex, this._credNumber)
     ).toString('hex');
     const s = this._sdk;
-    return s.buildBasicAccountSigner ? s.buildBasicAccountSigner(keyHex) : s.buildAccountSigner(keyHex);
+    return s.buildBasicAccountSigner(keyHex);
   }
 
   /** Build an unsigned simple-transfer transaction for { to, value(microCCD) }. */
