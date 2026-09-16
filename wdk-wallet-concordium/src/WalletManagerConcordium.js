@@ -128,14 +128,9 @@ export default class WalletManagerConcordium extends WalletManager {
   async listTokens(limit = 50) {
     const client = await this._getClient();
     const ids = [];
-    for (const method of ['getTokenList', 'getTokenInfos', 'getTokens']) {
-      if (typeof client[method] === 'function') {
-        for await (const t of client[method]()) {
-          ids.push(t?.id?.toString?.() ?? t?.tokenId?.toString?.() ?? String(t));
-          if (ids.length >= limit) break;
-        }
-        break;
-      }
+    for await (const t of client.getTokenList()) {
+      ids.push(t?.id?.toString?.() ?? t?.tokenId?.toString?.() ?? String(t));
+      if (ids.length >= limit) break;
     }
     return ids;
   }
