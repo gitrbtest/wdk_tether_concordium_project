@@ -94,7 +94,8 @@ export default class WalletAccountConcordium extends WalletAccountReadOnly {
     const credId = this._wallet.getCredentialId(
       this._providerIndex, this._identityIndex, this._credNumber, { onChainCommitmentKey }
     );
-    this._addr = credIdToAddress(this._sdk, credId).toString();
+    // getCredentialId returns a Buffer; getAccountAddress takes the hex string.
+    this._addr = this._sdk.getAccountAddress(credId.toString('hex')).toString();
     return this._addr;
   }
 
@@ -545,23 +546,3 @@ function extractFee(status) {
   try { return BigInt(cost?.microCcdAmount ?? cost ?? 0n); } catch { return 0n; }
 }
 
-/**
- * Convert whatever getCredentialId returns (a CredentialRegistrationId object
- * in v12, or a hex string / bytes in other versions) into an AccountAddress.
- */
-function credIdToAddress(sdk, credId) {
-  try { return sdk.getAccountAddress(credId); } catch { /* fall through */ }
-  if (typeof credId === 'string') return sdk.getAccountAddress(asCredId(sdk, credId));
-  if (credId instanceof Uint8Array || Buffer.isBuffer(credId) || Array.isArray(credId)) {
-    return sdk.getAccountAddress(asCredId(sdk, Buffer.from(credId).toString('hex')));
-  }
-  const s = credId?.toString?.();
-  if (typeof s === 'string' && /^[0-9a-fA-F]+$/.test(s)) return sdk.getAccountAddress(asCredId(sdk, s));
-  throw new Error('Unrecognised credId type from getCredentialId: ' + Object.prototype.toString.call(credId));
-}
-
-function asCredId(sdk, hex) {
-  return sdk.CredentialRegistrationId?.fromHexString
-    ? sdk.CredentialRegistrationId.fromHexString(hex)
-    : hex;
-}
