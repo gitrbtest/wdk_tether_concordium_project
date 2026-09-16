@@ -155,12 +155,9 @@ export default class ConcordiumOnboarding {
     };
 
     const expiryDate = new Date(Date.now() + 3600_000);
-    const expiry = sdk.TransactionExpiry?.fromDate
-      ? sdk.TransactionExpiry.fromDate(expiryDate)
-      : new sdk.TransactionExpiry(expiryDate);
+    const expiry = sdk.TransactionExpiry.fromDate(expiryDate);
 
-    const create = sdk.createCredentialPayload ?? sdk.createCredentialTransaction;
-    const credentialDeployment = create(credInput, expiry);
+    const credentialDeployment = sdk.createCredentialPayload(credInput, expiry);
 
     const wallet = sdk.ConcordiumHdWallet.fromHex(this._seedHex, this._network);
     const signingKey = wallet.getAccountSigningKey(providerIndex, identityIndex, credNumber);
