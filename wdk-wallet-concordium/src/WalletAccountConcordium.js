@@ -238,7 +238,7 @@ export default class WalletAccountConcordium extends WalletAccountReadOnly {
   async getTransactionReceipt(hash) {
     const s = this._sdk;
     const client = await this._getClient();
-    const h = s.TransactionHash?.fromHexString ? s.TransactionHash.fromHexString(hash) : hash;
+    const h = s.TransactionHash.fromHexString(hash);
     try { return (await client.getBlockItemStatus(h)) ?? null; }
     catch { return null; }
   }
