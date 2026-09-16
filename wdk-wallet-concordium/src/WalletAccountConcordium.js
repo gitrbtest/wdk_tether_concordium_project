@@ -352,21 +352,13 @@ export default class WalletAccountConcordium extends WalletAccountReadOnly {
 
   // ---- CIS-2 (smart-contract token) ----
 
-  async _cis2Module() {
-    if (!this.__cis2) {
-      try { this.__cis2 = await import('@concordium/web-sdk/cis2'); }
-      catch { this.__cis2 = this._sdk; }   // fall back to the main export
-    }
-    return this.__cis2;
-  }
-
   async _cis2Contract(ref) {
     const s = this._sdk;
-    const mod = await this._cis2Module();
-    const CIS2Contract = mod.CIS2Contract ?? s.CIS2Contract;
     const client = await this._getClient();
     const addr = s.ContractAddress.create(ref.index, ref.subindex);
-    return CIS2Contract.create(client, addr);
+    // The main SDK re-exports CIS2Contract (export * from './pub/cis2.js'), so no
+    // separate '@concordium/web-sdk/cis2' import is needed.
+    return s.CIS2Contract.create(client, addr);
   }
 
   async _cis2Balance(ref) {
@@ -397,7 +389,7 @@ export default class WalletAccountConcordium extends WalletAccountReadOnly {
     }
     const usedVal = BigInt(dry?.usedEnergy?.value ?? dry?.usedEnergy ?? 0n);
     const buffered = (usedVal * 12n) / 10n;
-    return s.Energy?.create ? s.Energy.create(buffered) : buffered;
+    return s.Energy.create(buffered);
   }
 
   async _cis2QuoteTransfer(ref, recipient, amount) {
