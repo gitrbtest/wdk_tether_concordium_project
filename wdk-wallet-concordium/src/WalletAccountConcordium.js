@@ -338,12 +338,7 @@ export default class WalletAccountConcordium extends WalletAccountReadOnly {
     if (decimals == null) throw new Error('quoteTransfer: could not determine PLT decimals.');
     const amt = plt.TokenAmount.create(amount, decimals);
     const op = { transfer: { recipient: plt.CborAccountAddress.fromAccountAddress(s.AccountAddress.fromBase58(recipient)), amount: amt } };
-    const payload = plt.createTokenUpdatePayload
-      ? plt.createTokenUpdatePayload(plt.TokenId.fromString(ref.symbol), op)
-      : null;
-    if (!payload || !s.getEnergyCost || !s.AccountTransactionType?.TokenUpdate) {
-      throw new NotImplementedError('quoteTransfer(PLT): fee estimation needs confirmation for this SDK version.');
-    }
+    const payload = plt.createTokenUpdatePayload(plt.TokenId.fromString(ref.symbol), op);
     const energy = s.getEnergyCost(s.AccountTransactionType.TokenUpdate, payload, 1n);
     const cp = await client.getBlockChainParameters();
     const feeAmount = s.convertEnergyToMicroCcd(energy, cp?.value ?? cp);
