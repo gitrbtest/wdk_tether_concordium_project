@@ -17,6 +17,8 @@
  */
 
 import WalletManager, { NotImplementedError } from '@tetherto/wdk-wallet';
+import * as sdk from '@concordium/web-sdk';
+import { ConcordiumGRPCNodeClient, credentials } from '@concordium/web-sdk/nodejs';
 import WalletAccountConcordium from './WalletAccountConcordium.js';
 import ConcordiumOnboarding from './ConcordiumOnboarding.js';
 
@@ -65,7 +67,6 @@ export default class WalletManagerConcordium extends WalletManager {
       endpoint: { ...base.endpoint, ...(config.endpoint || {}) },   // deep-merge endpoint
     };
     this._client = null;   // shared gRPC client (lazy)
-    this._sdk = null;      // SDK (lazy)
     this._global = null;   // cached cryptographic parameters
   }
 
@@ -74,14 +75,8 @@ export default class WalletManagerConcordium extends WalletManager {
     return Buffer.from(this.seed).toString('hex');
   }
 
-  async _getSdk() {
-    if (!this._sdk) this._sdk = await import('@concordium/web-sdk');
-    return this._sdk;
-  }
-
   async _getClient() {
     if (!this._client) {
-      const { ConcordiumGRPCNodeClient, credentials } = await import('@concordium/web-sdk/nodejs');
       const { host, port, secure } = this._ccd.endpoint;
       this._client = new ConcordiumGRPCNodeClient(
         host, port, secure ? credentials.createSsl() : credentials.createInsecure()
@@ -229,7 +224,6 @@ export default class WalletManagerConcordium extends WalletManager {
     maxIndex = 50,
     onlySimple = false,
   } = {}) {
-    const sdk = await this._getSdk();
     const wallet = sdk.ConcordiumHdWallet.fromHex(this._seedHex, this._ccd.network);
     const found = [];
     let gap = 0;
@@ -259,10 +253,8 @@ export default class WalletManagerConcordium extends WalletManager {
   }
 
   async _makeAccount(providerIndex, identityIndex, credNumber) {
-    const sdk = await this._getSdk();
     const wallet = sdk.ConcordiumHdWallet.fromHex(this._seedHex, this._ccd.network);
     const account = new WalletAccountConcordium({
-      sdk,
       wallet,
       getClient: () => this._getClient(),
       getGlobal: () => this._getGlobal(),

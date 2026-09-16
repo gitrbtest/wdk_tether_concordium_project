@@ -23,6 +23,8 @@
  */
 
 import WalletAccountReadOnly, { NotImplementedError } from '@tetherto/wdk-wallet';
+import * as sdk from '@concordium/web-sdk';
+import * as plt from '@concordium/web-sdk/plt';
 
 export class AccountNotCreatedError extends Error {
   constructor(address) {
@@ -53,10 +55,10 @@ export class TransactionRejectedError extends Error {
 }
 
 export default class WalletAccountConcordium extends WalletAccountReadOnly {
-  constructor({ sdk, wallet, getClient, getGlobal, network,
+  constructor({ wallet, getClient, getGlobal, network,
                 providerIndex, identityIndex, credNumber, address }) {
     super(address);                 // base keeps the address (if known up front)
-    this._sdk = sdk;
+    this._sdk = sdk;                // the statically-imported @concordium/web-sdk namespace
     this._wallet = wallet;
     this._getClient = getClient;
     this._getGlobal = getGlobal;
@@ -125,12 +127,6 @@ export default class WalletAccountConcordium extends WalletAccountReadOnly {
   dispose() { this._disposed = true; this._wallet = null; }
 
   // ================= Phase 2: sending native CCD =================
-
-  /** Lazily load the PLT (protocol-level token) module. */
-  async _plt() {
-    if (!this.__plt) this.__plt = await import('@concordium/web-sdk/plt');
-    return this.__plt;
-  }
 
   /** Build an AccountSigner for this single-credential, single-key account. */
   _signer() {
@@ -302,7 +298,6 @@ export default class WalletAccountConcordium extends WalletAccountReadOnly {
 
   async _pltBalance(ref) {
     const s = this._sdk;
-    const plt = await this._plt();
     const client = await this._getClient();
     const token = await plt.Token.fromId(client, plt.TokenId.fromString(ref.symbol));
     const addr = s.AccountAddress.fromBase58(await this.getAddress());
@@ -312,7 +307,6 @@ export default class WalletAccountConcordium extends WalletAccountReadOnly {
 
   async _pltTransfer(ref, recipient, amount) {
     const s = this._sdk;
-    const plt = await this._plt();
     const client = await this._getClient();
     const tok = await plt.Token.fromId(client, plt.TokenId.fromString(ref.symbol));
     const sender = s.AccountAddress.fromBase58(await this.getAddress());
@@ -332,7 +326,6 @@ export default class WalletAccountConcordium extends WalletAccountReadOnly {
 
   async _pltQuoteTransfer(ref, recipient, amount) {
     const s = this._sdk;
-    const plt = await this._plt();
     const client = await this._getClient();
     const tok = await plt.Token.fromId(client, plt.TokenId.fromString(ref.symbol));
     const decimals = tokenDecimals(tok);
@@ -451,7 +444,6 @@ export default class WalletAccountConcordium extends WalletAccountReadOnly {
       throw new NotImplementedError('Sponsored transfers currently target PLT tokens (the stablecoin case).');
     }
     const s = this._sdk;
-    const plt = await this._plt();
     const client = await this._getClient();
     const tok = await plt.Token.fromId(client, plt.TokenId.fromString(ref.symbol));
     const decimals = tokenDecimals(tok);

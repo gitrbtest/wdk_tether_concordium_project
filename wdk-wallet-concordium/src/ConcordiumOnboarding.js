@@ -34,6 +34,8 @@
  * This is a direct port of the flow proven end-to-end in Phase 0.
  */
 
+import * as sdk from '@concordium/web-sdk';
+
 export default class ConcordiumOnboarding {
   /** @param {import('./WalletManagerConcordium.js').default} manager */
   constructor(manager) {
@@ -46,7 +48,7 @@ export default class ConcordiumOnboarding {
 
   async _ctx() {
     return {
-      sdk: await this._m._getSdk(),
+      sdk,
       client: await this._m._getClient(),
       global: await this._m._getGlobal(),
     };
