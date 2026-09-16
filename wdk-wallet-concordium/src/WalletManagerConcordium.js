@@ -20,10 +20,25 @@ import WalletManager, { NotImplementedError } from '@tetherto/wdk-wallet';
 import WalletAccountConcordium from './WalletAccountConcordium.js';
 import ConcordiumOnboarding from './ConcordiumOnboarding.js';
 
-const DEFAULTS = {
-  network: 'Testnet',                                   // 'Testnet' | 'Mainnet'
-  endpoint: { host: 'grpc.testnet.concordium.com', port: 20000, secure: true },
-  walletProxy: 'https://wallet-proxy.testnet.concordium.com',
+const DEFAULT_NETWORK = 'Testnet';
+
+// Per-network defaults. Passing just { network: 'Mainnet' } selects the mainnet
+// endpoint + wallet-proxy automatically; every field stays overridable via config.
+// NB: for production mainnet Concordium recommends running your own node + proxy;
+// these are the public endpoints its own Desktop Wallet uses.
+const NETWORK_DEFAULTS = {
+  Testnet: {
+    endpoint: { host: 'grpc.testnet.concordium.com', port: 20000, secure: true },
+    walletProxy: 'https://wallet-proxy.testnet.concordium.com',
+  },
+  Mainnet: {
+    endpoint: { host: 'grpc.mainnet.concordium.software', port: 20000, secure: true },
+    walletProxy: 'https://wallet-proxy.mainnet.concordium.com',
+  },
+};
+
+// Network-independent defaults.
+const COMMON_DEFAULTS = {
   identityProviderIndex: 0,
   identityIndex: 0,
 };
@@ -31,14 +46,23 @@ const DEFAULTS = {
 export default class WalletManagerConcordium extends WalletManager {
   /**
    * @param {string | Uint8Array} seed  BIP-39 mnemonic or raw seed bytes.
-   * @param {object} config  WDK WalletConfig plus Concordium fields (see DEFAULTS).
+   * @param {object} config  WDK WalletConfig plus Concordium fields (network,
+   *   endpoint, walletProxy, identityProviderIndex, identityIndex).
+   * @throws {Error} If `config.network` is neither 'Testnet' nor 'Mainnet'.
    */
   constructor(seed, config = {}) {
     super(seed, config);                       // base stores the seed + config
+    const network = config.network || DEFAULT_NETWORK;
+    const base = NETWORK_DEFAULTS[network];
+    if (!base) {
+      throw new Error(`Unknown network "${network}". Use 'Testnet' or 'Mainnet'.`);
+    }
     this._ccd = {
-      ...DEFAULTS,
-      ...config,
-      endpoint: { ...DEFAULTS.endpoint, ...(config.endpoint || {}) },
+      ...COMMON_DEFAULTS,
+      ...base,                                             // network endpoint + walletProxy
+      ...config,                                           // caller overrides (incl. network)
+      network,
+      endpoint: { ...base.endpoint, ...(config.endpoint || {}) },   // deep-merge endpoint
     };
     this._client = null;   // shared gRPC client (lazy)
     this._sdk = null;      // SDK (lazy)

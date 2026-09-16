@@ -140,15 +140,22 @@ crypto is confirmed working under Node in Phase 0.
 
 ## Config
 
-| Field | Default | Meaning |
-|---|---|---|
-| `network` | `'Testnet'` | `'Testnet'` or `'Mainnet'` |
-| `endpoint.host` | `grpc.testnet.concordium.com` | Concordium gRPC node host |
-| `endpoint.port` | `20000` | node port |
-| `endpoint.secure` | `true` | TLS — the public testnet node requires it |
-| `walletProxy` | `https://wallet-proxy.testnet.concordium.com` | wallet-proxy base URL (onboarding + recovery) |
-| `identityProviderIndex` | `0` | provider that WDK indices live under |
-| `identityIndex` | `0` | identity that WDK indices live under |
+Defaults are selected by `network`: passing just `{ network: 'Mainnet' }` picks the
+mainnet endpoint and wallet-proxy automatically. Every field stays overridable.
+
+| Field | Default (Testnet) | Default (Mainnet) | Meaning |
+|---|---|---|---|
+| `network` | `'Testnet'` | — | `'Testnet'` or `'Mainnet'` (unknown values throw) |
+| `endpoint.host` | `grpc.testnet.concordium.com` | `grpc.mainnet.concordium.software` | Concordium gRPC node host |
+| `endpoint.port` | `20000` | `20000` | node port |
+| `endpoint.secure` | `true` | `true` | TLS — the public nodes require it |
+| `walletProxy` | `https://wallet-proxy.testnet.concordium.com` | `https://wallet-proxy.mainnet.concordium.com` | wallet-proxy base URL (onboarding + recovery) |
+| `identityProviderIndex` | `0` | `0` | provider that WDK indices live under |
+| `identityIndex` | `0` | `0` | identity that WDK indices live under |
+
+For **production mainnet**, Concordium recommends running your own node and
+wallet-proxy and overriding `endpoint` / `walletProxy` accordingly. The mainnet
+defaults above are the public endpoints Concordium's own Desktop Wallet uses.
 
 ## Interface
 
