@@ -20,9 +20,18 @@ test('getAccount with a signer name is not supported yet', async () => {
   m.dispose();
 });
 
-test('getAccountByPath rejects a malformed path', async () => {
+test('getAccountByPath rejects malformed and non-canonical paths', async () => {
   const m = makeManager();
-  await assert.rejects(() => m.getAccountByPath('not/a/path'), /Invalid Concordium path/i);
+  // Things parseInt used to accept but a canonical path must not.
+  for (const bad of ['not/a/path', '1x/0/0', ' 1/0/0', '01/0/0', '1/2', '1/2/3/4', '-1/0/0', '']) {
+    await assert.rejects(() => m.getAccountByPath(bad), /Invalid Concordium path/i, `should reject "${bad}"`);
+  }
+  m.dispose();
+});
+
+test('getAccountByPath rejects an out-of-safe-range index', async () => {
+  const m = makeManager();
+  await assert.rejects(() => m.getAccountByPath('99999999999999999999/0/0'), /exceeds the supported integer range/i);
   m.dispose();
 });
 

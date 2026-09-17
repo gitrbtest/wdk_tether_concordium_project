@@ -113,9 +113,16 @@ export default class WalletManagerConcordium extends WalletManager {
    * BIP-44 string.)
    */
   async getAccountByPath(path, _options = {}) {
-    const [p, id, cred] = String(path).split('/').map((n) => parseInt(n, 10));
-    if ([p, id, cred].some((n) => Number.isNaN(n))) {
+    const value = String(path);
+    // Require a canonical "provider/identity/cred" of non-negative integers with
+    // no leading zeros and nothing extra — parseInt would accept sloppy input
+    // like "1x" or " 1 ", which we reject here.
+    if (!/^(0|[1-9]\d*)\/(0|[1-9]\d*)\/(0|[1-9]\d*)$/.test(value)) {
       throw new Error(`Invalid Concordium path "${path}". Use "provider/identity/cred", e.g. "0/0/3".`);
+    }
+    const [p, id, cred] = value.split('/').map(Number);
+    if (![p, id, cred].every(Number.isSafeInteger)) {
+      throw new Error(`Concordium path "${path}" exceeds the supported integer range.`);
     }
     return this._makeAccount(p, id, cred);
   }
